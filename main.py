@@ -34,7 +34,7 @@ def run (bird_array, plane_array, data_array):
         b_bird.append([])
 
     # Starting at the first data point in each observation, the algorithm
-    # multiplies the probability of each classifier at the first data
+    # multiplies the probability of each classifier at the —first data
     # point and adds it to the nested lists
     for q in range (0, 10):
         plane = plane_array[data_array[q][0]] * 0.9
