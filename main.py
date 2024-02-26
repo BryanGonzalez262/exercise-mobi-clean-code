@@ -3,58 +3,17 @@
 
 
 # Sets up the data input into lists and runs program
+
+
 def main():
+    bird_probabilities = read_probabilities("/Users/bryan.gonzalez/PycharmProjects/Mobi_RT/exercise-mobi-clean-code/pdf.txt")
+    plane_probabilities = read_probabilities("/Users/bryan.gonzalez/PycharmProjects/Mobi_RT/exercise-mobi-clean-code/pdf.txt")
+    data_array = read_data("/Users/bryan.gonzalez/PycharmProjects/Mobi_RT/exercise-mobi-clean-code/data.txt")
 
-    file1 = open("pdf.txt", 'r')
-    bird_array = dict()
-    plane_array = dict()
-    i = 0
-    j = 0
-    lines = file1.readlines()
-    line = lines[0]
-    line = line.strip('\n')
-    x = line.split(',')
-
-    # Creates dictionary of probabilities where each index is a velocity
-    # increasing by 0.5 from 0 -> 200 and at each index there is the
-    # likelihood of the bird or plane traveling at that speed
-    j = 0
-    for i in range (0, 400):
-        bird_array[j] = float(x[i])
-        j += 0.5
-    line = lines[1]
-    line = line.strip('\n')
-    x = line.split(',')
-    i = 0
-    for j in range (0, 400):
-        plane_array[i] = float(x[j])
-        i += 0.5
-
-    # Creates a nested list of all of the observation data
-    file2 = open("data.txt", 'r')
-    data_array = []
-    i = 0
-    empty_list = []
-    while i < 10:
-        data_array.append([])
-        i += 1
-    lines = file2.readlines()
-    y = 0
-    for line in lines:
-        line = line.strip('\n')
-        x = line.split(',')
-        for k in range (0, 300):
-            if x[k] != 'NaN':
-                new = float(x[k])
-                new = round(new * 2) / 2
-                data_array[y].append(new)
-        y += 1
-
-    # Runs program
-    result = run (bird_array, plane_array, data_array)
+    result = run_naive_bayesian(bird_probabilities, plane_probabilities, data_array)
     pretty_print(result)
-    file2.close()
-    file1.close()
+
+
 
 # Helper function to print out the result
 def pretty_print (result):
@@ -125,3 +84,59 @@ def run (bird_array, plane_array, data_array):
             classification.append("Could not be determined. ")
     
     return classification
+
+
+def read_probabilities(file_path):
+    probabilities = {}
+    with open(file_path, 'r') as file:
+        line = file.readline().strip('\n').split(',')
+        j = 0
+        for i in range(0, 400):
+            probabilities[j] = float(line[i])
+            j += 0.5
+    return probabilities
+
+
+def read_data(file_path):
+    data_array = []
+    with open(file_path, 'r') as file:
+        for _ in range(10):
+            data_array.append([])
+        for line in file:
+            line = line.strip('\n').split(',')
+            for k in range(0, 300):
+                if line[k] != 'NaN':
+                    new = round(float(line[k]) * 2) / 2
+                    data_array[len(data_array) - 1].append(new)
+    return data_array
+
+
+def run_naive_bayesian(bird_probabilities, plane_probabilities, data_array):
+    classification = []
+
+    for observation in data_array:
+        b_plane = [plane_probabilities[observation[0]] * 0.9]
+        b_bird = [bird_probabilities[observation[0]] * 0.9]
+
+        for i in range(1, len(observation)):
+            plane = b_plane[-1] + plane_probabilities[observation[i]] * (0.9 * b_plane[-1] + 0.1 * b_bird[-1])
+            bird = b_bird[-1] + bird_probabilities[observation[i]] * (0.9 * b_bird[-1] + 0.1 * b_plane[-1])
+            total_sum = plane + bird
+            b_plane.append(plane / total_sum if total_sum != 0 else 0)
+            b_bird.append(bird / total_sum if total_sum != 0 else 0)
+
+        plane_num, bird_num = b_plane[-1], b_bird[-1]
+
+        if plane_num > (bird_num + 0.10):
+            classification.append(f"Aircraft = {plane_num}")
+        elif bird_num > (plane_num + 0.05):
+            classification.append(f"Bird = {bird_num}")
+        else:
+            classification.append("Could not be determined.")
+
+    return classification
+
+
+
+if __name__ == "__main__":
+    main()
